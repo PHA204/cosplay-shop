@@ -28,5 +28,25 @@ class ApiService {
     return http.post(uri, body: json.encode(body), headers: h).timeout(timeout);
   }
 
-  // add put, delete if cần
+  Future<http.Response> put(String path, Object body, {Map<String, String>? headers}) async {
+    final token = await TokenStorage.getToken();
+    final h = <String, String>{
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (headers != null) ...headers,
+    };
+    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+    return http.put(uri, body: json.encode(body), headers: h).timeout(timeout);
+  }
+
+  Future<http.Response> delete(String path, {Map<String, String>? headers}) async {
+    final token = await TokenStorage.getToken();
+    final h = <String, String>{
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (headers != null) ...headers,
+    };
+    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+    return http.delete(uri, headers: h).timeout(timeout);
+  }
 }
