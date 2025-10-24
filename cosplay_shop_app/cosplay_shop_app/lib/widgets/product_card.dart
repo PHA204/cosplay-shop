@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/product.dart';
+import '../providers/wishlist_provider.dart';
+import '../providers/auth_provider.dart';
+import '../screens/login_screen.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -17,11 +21,8 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final imageUrl = product.images.isNotEmpty ? product.images[0].toString() : null;
-    
-    // Debug: In ra URL ảnh
-    print('Product: ${product.name}');
-    print('Image URL: $imageUrl');
-    print('Images array: ${product.images}');
+    final wishlistProvider = context.watch<WishlistProvider>();
+    final isInWishlist = wishlistProvider.isInWishlist(product.id);
     
     return GestureDetector(
       onTap: onTap,
@@ -74,9 +75,6 @@ class ProductCard extends StatelessWidget {
                           );
                         },
                         errorBuilder: (context, error, stackTrace) {
-                          print('❌ Error loading image: $imageUrl');
-                          print('Error: $error');
-                          print('StackTrace: $stackTrace');
                           return Container(
                             color: theme.colorScheme.errorContainer,
                             child: Column(
@@ -138,41 +136,17 @@ class ProductCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.favorite_border),
+                        icon: Icon(
+                          isInWishlist ? Icons.favorite : Icons.favorite_border,
+                          color: isInWishlist ? Colors.red : theme.colorScheme.primary,
+                        ),
                         iconSize: 20,
-                        color: theme.colorScheme.primary,
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
-                        onPressed: () {
-                          // Add to wishlist
-                        },
+                        onPressed: () => _handleToggleWishlist(context),
                       ),
                     ),
                   ),
-                  
-                  // Discount Badge (if needed)
-                  // Positioned(
-                  //   top: 8,
-                  //   left: 8,
-                  //   child: Container(
-                  //     padding: const EdgeInsets.symmetric(
-                  //       horizontal: 8,
-                  //       vertical: 4,
-                  //     ),
-                  //     decoration: BoxDecoration(
-                  //       color: theme.colorScheme.error,
-                  //       borderRadius: BorderRadius.circular(8),
-                  //     ),
-                  //     child: Text(
-                  //       '-20%',
-                  //       style: TextStyle(
-                  //         color: theme.colorScheme.onError,
-                  //         fontSize: 12,
-                  //         fontWeight: FontWeight.bold,
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ),
@@ -251,6 +225,49 @@ class ProductCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _handleToggleWishlist(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    
+    if (!authProvider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Vui lòng đăng nhập để thêm vào yêu thích'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Đăng nhập',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    final wishlistProvider = context.read<WishlistProvider>();
+    final isInWishlist = wishlistProvider.isInWishlist(product.id);
+    
+    final success = await wishlistProvider.toggleWishlist(product.id);
+    
+    if (context.mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isInWishlist 
+                ? 'Đã xóa khỏi yêu thích' 
+                : 'Đã thêm vào yêu thích'
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1),
+          backgroundColor: isInWishlist ? null : Colors.green,
+        ),
+      );
+    }
   }
 
   String _formatPrice(double price) {

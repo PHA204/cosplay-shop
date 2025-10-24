@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
 import '../screens/home_screen.dart';
 import '../screens/cart_screen.dart';
 import '../screens/profile_screen.dart';
@@ -26,12 +27,28 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
-    // Load cart khi mở app
+    
+    // Setup listener cho auth state changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CartProvider>().loadCart().catchError((e) {
-        // Ignore error nếu chưa đăng nhập
-      });
+      final authProvider = context.read<AuthProvider>();
+      
+      // Set callback để load cart khi auth state thay đổi
+      authProvider.onAuthStateChanged = () {
+        _loadCartIfAuthenticated();
+      };
+      
+      // Load cart ngay nếu đã đăng nhập
+      _loadCartIfAuthenticated();
     });
+  }
+
+  void _loadCartIfAuthenticated() {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      context.read<CartProvider>().loadCart().catchError((e) {
+        print('Error loading cart: $e');
+      });
+    }
   }
 
   @override
@@ -49,6 +66,11 @@ class _MainNavigationState extends State<MainNavigation> {
           setState(() {
             _currentIndex = index;
           });
+          
+          // Load cart khi chuyển sang tab giỏ hàng
+          if (index == 2) {
+            _loadCartIfAuthenticated();
+          }
         },
         destinations: [
           const NavigationDestination(

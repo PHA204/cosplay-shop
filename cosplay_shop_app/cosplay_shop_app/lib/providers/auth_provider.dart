@@ -16,6 +16,9 @@ class AuthProvider with ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
+  // Callback để thông báo khi auth state thay đổi
+  Function()? onAuthStateChanged;
+
   // Kiểm tra đã đăng nhập chưa khi mở app
   Future<void> checkAuthStatus() async {
     final token = await TokenStorage.getToken();
@@ -24,6 +27,9 @@ class AuthProvider with ChangeNotifier {
         _user = await _service.getCurrentUser();
         _isAuthenticated = true;
         notifyListeners();
+        
+        // Gọi callback nếu có
+        onAuthStateChanged?.call();
       } catch (e) {
         // Token hết hạn hoặc không hợp lệ
         await logout();
@@ -52,9 +58,13 @@ class AuthProvider with ChangeNotifier {
       
       _user = result['user'];
       _isAuthenticated = true;
+      
+      // Gọi callback nếu có
+      onAuthStateChanged?.call();
+      
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       return false;
     } finally {
       _loading = false;
@@ -75,9 +85,13 @@ class AuthProvider with ChangeNotifier {
       final result = await _service.login(email: email, password: password);
       _user = result['user'];
       _isAuthenticated = true;
+      
+      // Gọi callback nếu có
+      onAuthStateChanged?.call();
+      
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       return false;
     } finally {
       _loading = false;
@@ -90,6 +104,10 @@ class AuthProvider with ChangeNotifier {
     await _service.logout();
     _user = null;
     _isAuthenticated = false;
+    
+    // Gọi callback nếu có
+    onAuthStateChanged?.call();
+    
     notifyListeners();
   }
 
@@ -113,7 +131,7 @@ class AuthProvider with ChangeNotifier {
       );
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       return false;
     } finally {
       _loading = false;
