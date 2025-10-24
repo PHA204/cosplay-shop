@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -393,20 +394,12 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _showCheckoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Thanh toán'),
-        content: const Text('Chức năng thanh toán đang được phát triển.\nVui lòng thử lại sau!'),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+  );
+}
+
 
   String _formatPrice(double price) {
     return price.toStringAsFixed(0).replaceAllMapped(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
+import '../screens/orders_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -91,7 +92,10 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.shopping_bag_outlined,
                     title: 'Đơn hàng của tôi',
                     onTap: () {
-                      // Navigate to orders
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                      );
                     },
                   ),
                   _buildMenuItem(

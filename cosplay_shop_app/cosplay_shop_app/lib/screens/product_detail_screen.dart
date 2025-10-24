@@ -1,3 +1,4 @@
+// lib/screens/product_detail_screen.dart - UPDATED VERSION
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/product_service.dart';
@@ -5,6 +6,7 @@ import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/wishlist_provider.dart';
+import '../widgets/review_section.dart';
 import 'login_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -26,6 +28,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? error;
   int _currentImageIndex = 0;
   int _quantity = 1;
+  
+  // NEW: Size & Color Selection
+  String? _selectedSize;
+  String? _selectedColor;
+  final List<String> _availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  final List<Map<String, dynamic>> _availableColors = [
+    {'name': 'Đỏ', 'color': Colors.red},
+    {'name': 'Xanh', 'color': Colors.blue},
+    {'name': 'Đen', 'color': Colors.black},
+    {'name': 'Trắng', 'color': Colors.white},
+  ];
 
   @override
   void initState() {
@@ -36,6 +49,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _load() async {
     try {
       product = await _service.fetchProductById(widget.productId);
+      // Set default size
+      if (_availableSizes.isNotEmpty) {
+        _selectedSize = _availableSizes[2]; // Default to L
+      }
     } catch (e) {
       error = e.toString();
     } finally {
@@ -175,7 +192,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
             actions: [
-              // Wishlist Button - ĐÃ CẬP NHẬT
               IconButton(
                 icon: Icon(
                   isInWishlist ? Icons.favorite : Icons.favorite_border,
@@ -231,16 +247,96 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 16),
                   
                   // Price
-                  Row(
-                    children: [
-                      Text(
-                        '${_formatPrice(product!.price)} ₫',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                  Text(
+                    '${_formatPrice(product!.price)} ₫',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  
+                  // Size Selection
+                  Text(
+                    'Chọn kích thước',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _availableSizes.map((size) {
+                      final isSelected = _selectedSize == size;
+                      return ChoiceChip(
+                        label: Text(size),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedSize = selected ? size : null;
+                          });
+                        },
+                        selectedColor: theme.colorScheme.primaryContainer,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSurface,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Color Selection
+                  Text(
+                    'Chọn màu sắc',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _availableColors.map((colorData) {
+                      final isSelected = _selectedColor == colorData['name'];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = colorData['name'];
+                          });
+                        },
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: colorData['color'],
+                            border: Border.all(
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.outline,
+                              width: isSelected ? 3 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: isSelected
+                              ? Icon(
+                                  Icons.check,
+                                  color: colorData['color'] == Colors.white ||
+                                          colorData['color'] == Colors.yellow
+                                      ? Colors.black
+                                      : Colors.white,
+                                )
+                              : null,
+                        ),
+                      );
+                    }).toList(),
                   ),
                   
                   const SizedBox(height: 24),
@@ -299,6 +395,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  
+                  // Reviews Section
+                  ReviewSection(productId: product!.id),
+                  
                   const SizedBox(height: 100), // Space for bottom bar
                 ],
               ),
@@ -339,9 +441,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               // Buy Now Button
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {
-                    // Navigate to checkout
-                  },
+                  onPressed: () => _handleBuyNow(context),
                   icon: const Icon(Icons.bolt),
                   label: const Text('Mua ngay'),
                   style: FilledButton.styleFrom(
@@ -356,11 +456,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // THÊM FUNCTION NÀY - Toggle Wishlist
   Future<void> _handleToggleWishlist(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
     
-    // Kiểm tra đăng nhập
     if (!authProvider.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -383,10 +481,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final wishlistProvider = context.read<WishlistProvider>();
     final isInWishlist = wishlistProvider.isInWishlist(widget.productId);
     
-    // Toggle wishlist
     final success = await wishlistProvider.toggleWishlist(widget.productId);
     
-    // Hiển thị thông báo
     if (context.mounted && success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -404,6 +500,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _handleAddToCart(BuildContext context) async {
+    // Validate selections
+    if (_selectedSize == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn kích thước'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final authProvider = context.read<AuthProvider>();
     
     if (!authProvider.isAuthenticated) {
@@ -435,7 +542,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thêm $_quantity sản phẩm vào giỏ hàng'),
+            content: Text('Đã thêm $_quantity sản phẩm (Size: $_selectedSize${_selectedColor != null ? ', Màu: $_selectedColor' : ''}) vào giỏ hàng'),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
             backgroundColor: Colors.green,
@@ -450,6 +557,49 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleBuyNow(BuildContext context) async {
+    // Validate selections
+    if (_selectedSize == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn kích thước'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+    
+    if (!authProvider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Vui lòng đăng nhập để mua hàng'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Đăng nhập',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Add to cart first
+    final cartProvider = context.read<CartProvider>();
+    await cartProvider.addToCart(widget.productId, quantity: _quantity);
+    
+    // Navigate to checkout
+    if (context.mounted) {
+      Navigator.pushNamed(context, '/checkout'); // Or use MaterialPageRoute
     }
   }
 

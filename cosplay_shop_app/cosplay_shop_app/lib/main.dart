@@ -1,12 +1,14 @@
+// lib/main.dart - UPDATED
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
+import 'providers/wishlist_provider.dart';
+import 'providers/order_provider.dart'; // NEW
 import 'screens/main_navigation.dart';
 import 'services/image_service.dart';
-import 'providers/wishlist_provider.dart';
 
 void main() {
   HttpOverrides.global = CustomHttpOverrides();
@@ -23,11 +25,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
-         ChangeNotifierProvider(create: (_) => WishlistProvider()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
+        ChangeNotifierProvider(create: (_) => OrderProvider()), // NEW
       ],
       child: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          // Check auth status when app starts
           if (!auth.isAuthenticated && !auth.loading) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               auth.checkAuthStatus();
@@ -66,7 +68,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             ),
-            home: const MainNavigation(), // ✅ Đổi từ HomeScreen sang MainNavigation
+            home: const MainNavigation(),
           );
         },
       ),
