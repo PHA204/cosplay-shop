@@ -248,7 +248,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   // Price
                   Text(
-                    '${_formatPrice(product!.price)} ₫',
+                    '${_formatPrice(product!.dailyPrice)} ₫',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,

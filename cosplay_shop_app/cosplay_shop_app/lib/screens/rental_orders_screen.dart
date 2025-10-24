@@ -1,20 +1,20 @@
-// lib/screens/orders_screen.dart
+// lib/screens/rental_orders_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/order_provider.dart';
+import '../providers/rental_provider.dart';
 import '../providers/auth_provider.dart';
-import '../models/order.dart';
+import '../models/rental_order.dart';
 import 'login_screen.dart';
-import 'order_detail_screen.dart';
+import 'rental_order_detail_screen.dart';
 
-class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key});
+class RentalOrdersScreen extends StatefulWidget {
+  const RentalOrdersScreen({super.key});
 
   @override
-  State<OrdersScreen> createState() => _OrdersScreenState();
+  State<RentalOrdersScreen> createState() => _RentalOrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
+class _RentalOrdersScreenState extends State<RentalOrdersScreen> {
   @override
   void initState() {
     super.initState();
@@ -24,14 +24,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Future<void> _loadOrders() async {
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated) {
-      await context.read<OrderProvider>().loadOrders();
+      await context.read<RentalProvider>().loadRentalOrders();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final orderProvider = context.watch<OrderProvider>();
+    final rentalProvider = context.watch<RentalProvider>();
     final authProvider = context.watch<AuthProvider>();
 
     if (!authProvider.isAuthenticated) {
@@ -40,7 +40,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Đơn hàng của tôi'),
+        title: const Text('Đơn thuê của tôi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -48,17 +48,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         ],
       ),
-      body: orderProvider.loading
+      body: rentalProvider.loading
           ? const Center(child: CircularProgressIndicator())
-          : orderProvider.orders.isEmpty
+          : rentalProvider.orders.isEmpty
               ? _buildEmptyOrders(theme)
               : RefreshIndicator(
                   onRefresh: _loadOrders,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: orderProvider.orders.length,
+                    itemCount: rentalProvider.orders.length,
                     itemBuilder: (context, index) {
-                      final order = orderProvider.orders[index];
+                      final order = rentalProvider.orders[index];
                       return _buildOrderCard(context, theme, order);
                     },
                   ),
@@ -74,7 +74,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.shopping_bag_outlined,
+              Icons.receipt_long_outlined,
               size: 100,
               color: theme.colorScheme.primary.withOpacity(0.5),
             ),
@@ -87,7 +87,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Đăng nhập để xem đơn hàng của bạn',
+              'Đăng nhập để xem đơn thuê của bạn',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -116,20 +116,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.receipt_long_outlined,
+            Icons.inventory_2_outlined,
             size: 120,
             color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
           ),
           const SizedBox(height: 24),
           Text(
-            'Chưa có đơn hàng nào',
+            'Chưa có đơn thuê nào',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Hãy đặt hàng để theo dõi tại đây',
+            'Hãy thuê trang phục để trải nghiệm!',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -139,7 +139,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildOrderCard(BuildContext context, ThemeData theme, Order order) {
+  Widget _buildOrderCard(BuildContext context, ThemeData theme, RentalOrder order) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -147,7 +147,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OrderDetailScreen(orderId: order.id),
+              builder: (_) => RentalOrderDetailScreen(orderId: order.id),
             ),
           );
         },
@@ -185,6 +185,39 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ],
               ),
 
+              const SizedBox(height: 12),
+
+              // Rental Period
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_month,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${_formatShortDate(order.rentalStartDate)} - ${_formatShortDate(order.rentalEndDate)} (${order.rentalDays} ngày)',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const Divider(height: 24),
 
               // Items Preview
@@ -220,7 +253,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                'x${item.quantity}',
+                                'x${item.quantity} • ${item.rentalDays} ngày',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -229,7 +262,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ),
                         ),
                         Text(
-                          '${_formatPrice(item.totalPrice)} ₫',
+                          '${_formatPrice(item.subtotal)} ₫',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
@@ -256,7 +289,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tổng cộng',
+                        'Tổng thanh toán',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -266,6 +299,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '(Bao gồm cọc: ${_formatPrice(order.depositTotal)} ₫)',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -284,7 +323,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => OrderDetailScreen(orderId: order.id),
+                            builder: (_) => RentalOrderDetailScreen(orderId: order.id),
                           ),
                         );
                       },
@@ -292,6 +331,59 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     ),
                 ],
               ),
+
+              // Overdue warning
+              if (order.isOverdue)
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Đơn thuê đã quá hạn. Vui lòng trả sớm để tránh phí phạt!',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.red.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Days until return
+              if (order.isActive && !order.isOverdue)
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        color: theme.colorScheme.onTertiaryContainer,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Còn ${order.daysUntilReturn} ngày nữa đến hạn trả',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -312,17 +404,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
         bgColor = Colors.blue.withOpacity(0.2);
         textColor = Colors.blue.shade700;
         break;
-      case 'shipping':
+      case 'preparing':
         bgColor = Colors.purple.withOpacity(0.2);
         textColor = Colors.purple.shade700;
         break;
-      case 'delivered':
+      case 'delivering':
+        bgColor = Colors.indigo.withOpacity(0.2);
+        textColor = Colors.indigo.shade700;
+        break;
+      case 'rented':
+        bgColor = Colors.teal.withOpacity(0.2);
+        textColor = Colors.teal.shade700;
+        break;
+      case 'returning':
+        bgColor = Colors.amber.withOpacity(0.2);
+        textColor = Colors.amber.shade700;
+        break;
+      case 'completed':
         bgColor = Colors.green.withOpacity(0.2);
         textColor = Colors.green.shade700;
         break;
       case 'cancelled':
         bgColor = Colors.red.withOpacity(0.2);
         textColor = Colors.red.shade700;
+        break;
+      case 'overdue':
+        bgColor = Colors.red.withOpacity(0.3);
+        textColor = Colors.red.shade900;
         break;
       default:
         bgColor = theme.colorScheme.surfaceContainerHighest;
@@ -349,8 +457,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hủy đơn hàng'),
-        content: const Text('Bạn có chắc muốn hủy đơn hàng này?'),
+        title: const Text('Hủy đơn thuê'),
+        content: const Text('Bạn có chắc muốn hủy đơn thuê này?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -359,11 +467,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await context.read<OrderProvider>().cancelOrder(orderId);
+              final success = await context.read<RentalProvider>().cancelRentalOrder(orderId);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Đã hủy đơn hàng' : 'Không thể hủy đơn hàng'),
+                    content: Text(success ? 'Đã hủy đơn thuê' : 'Không thể hủy đơn thuê'),
                     behavior: SnackBarBehavior.floating,
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
@@ -379,6 +487,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatShortDate(DateTime date) {
+    return '${date.day}/${date.month}';
   }
 
   String _formatPrice(double price) {

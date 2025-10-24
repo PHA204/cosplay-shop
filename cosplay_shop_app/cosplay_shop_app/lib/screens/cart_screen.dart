@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'checkout_screen.dart';
+import 'rental_checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -396,7 +396,7 @@ class _CartScreenState extends State<CartScreen> {
   void _showCheckoutDialog(BuildContext context) {
   Navigator.push(
     context,
-    MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+    MaterialPageRoute(builder: (_) => const RentalCheckoutScreen()),
   );
 }
 

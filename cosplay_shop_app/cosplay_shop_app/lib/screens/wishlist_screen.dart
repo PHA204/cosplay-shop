@@ -200,7 +200,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         ),
                         const Spacer(),
                         Text(
-                          '${_formatPrice(product.price)} ₫',
+                          '${_formatPrice(product.dailyPrice)} ₫',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
