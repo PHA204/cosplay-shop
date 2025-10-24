@@ -1,13 +1,13 @@
 // lib/services/wishlist_service.dart
 import 'dart:convert';
-import '../models/product.dart';
+import '../models/product.dart' as ProductModel;
 import 'api_service.dart';
 
 class WishlistService {
   final ApiService _api = ApiService();
 
   // Lấy danh sách wishlist
-  Future<List<Product>> getWishlist() async {
+  Future<List<ProductModel.Product>> getWishlist() async {
     try {
       final res = await _api.get('/wishlist');
       
@@ -17,7 +17,7 @@ class WishlistService {
           // Backend trả về nested product object trong wishlist
           final productData = item['product'] ?? item;
           
-          return Product(
+          return ProductModel.Product(
             id: (productData['id'] ?? productData['product_id'] ?? '').toString(),
             name: productData['name'] ?? '',
             characterName: productData['character_name'] ?? '',

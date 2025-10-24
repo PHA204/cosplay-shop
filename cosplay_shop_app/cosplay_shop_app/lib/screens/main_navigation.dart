@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/home_screen.dart';
 import '../screens/cart_screen.dart';
@@ -32,28 +33,37 @@ class _MainNavigationState extends State<MainNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = context.read<AuthProvider>();
       
-      // Set callback để load cart khi auth state thay đổi
+      // Set callback để load cart và wishlist khi auth state thay đổi
       authProvider.onAuthStateChanged = () {
-        _loadCartIfAuthenticated();
+        _loadDataIfAuthenticated();
       };
       
-      // Load cart ngay nếu đã đăng nhập
-      _loadCartIfAuthenticated();
+      // Load data ngay nếu đã đăng nhập
+      _loadDataIfAuthenticated();
     });
   }
 
-  void _loadCartIfAuthenticated() {
+  void _loadDataIfAuthenticated() {
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated) {
+      // Load cart
       context.read<CartProvider>().loadCart().catchError((e) {
-        print('Error loading cart: $e');
+        print('❌ Error loading cart: $e');
       });
+      
+      // Load wishlist
+      context.read<WishlistProvider>().loadWishlist().catchError((e) {
+        print('❌ Error loading wishlist: $e');
+      });
+      
+      print('✅ Loaded cart and wishlist for authenticated user');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
+    final wishlistProvider = context.watch<WishlistProvider>();
 
     return Scaffold(
       body: IndexedStack(
@@ -67,9 +77,17 @@ class _MainNavigationState extends State<MainNavigation> {
             _currentIndex = index;
           });
           
-          // Load cart khi chuyển sang tab giỏ hàng
-          if (index == 2) {
-            _loadCartIfAuthenticated();
+          // Load dữ liệu khi chuyển tab
+          final authProvider = context.read<AuthProvider>();
+          if (authProvider.isAuthenticated) {
+            // Load cart khi chuyển sang tab giỏ hàng
+            if (index == 2) {
+              context.read<CartProvider>().loadCart();
+            }
+            // Load wishlist khi chuyển sang tab yêu thích
+            else if (index == 1) {
+              context.read<WishlistProvider>().loadWishlist();
+            }
           }
         },
         destinations: [
@@ -78,9 +96,17 @@ class _MainNavigationState extends State<MainNavigation> {
             selectedIcon: Icon(Icons.home),
             label: 'Trang chủ',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.favorite_border),
-            selectedIcon: Icon(Icons.favorite),
+          NavigationDestination(
+            icon: Badge(
+              label: Text('${wishlistProvider.itemCount}'),
+              isLabelVisible: wishlistProvider.itemCount > 0,
+              child: const Icon(Icons.favorite_border),
+            ),
+            selectedIcon: Badge(
+              label: Text('${wishlistProvider.itemCount}'),
+              isLabelVisible: wishlistProvider.itemCount > 0,
+              child: const Icon(Icons.favorite),
+            ),
             label: 'Yêu thích',
           ),
           NavigationDestination(

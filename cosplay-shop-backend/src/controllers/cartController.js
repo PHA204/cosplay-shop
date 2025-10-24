@@ -1,4 +1,4 @@
-// src/controllers/cartController.js
+// src/controllers/cartController.js - UPDATED FOR RENTAL SYSTEM
 import pool from "../config/database.js";
 
 /**
@@ -6,16 +6,37 @@ import pool from "../config/database.js";
  */
 export const getCartItems = async (req, res) => {
   const result = await pool.query(
-    `SELECT c.id, c.product_id, c.quantity, p.name, p.price, p.images, pv.size, pv.color
+    `SELECT 
+      c.id, 
+      c.product_id, 
+      c.quantity, 
+      p.name, 
+      p.daily_price, 
+      p.deposit_amount,
+      p.images, 
+      p.character_name,
+      p.size
      FROM cart c
      JOIN product p ON c.product_id = p.id
-     LEFT JOIN product_variants pv ON c.product_id = pv.product_id
      WHERE c.user_id = $1
      ORDER BY c.created_at DESC`,
     [req.user.id]
   );
 
-  res.json(result.rows);
+  // Format response để Flutter dễ parse
+  const formattedItems = result.rows.map(item => ({
+    id: item.id,
+    product_id: item.product_id,
+    quantity: item.quantity,
+    name: item.name,
+    daily_price: parseFloat(item.daily_price), // Giá thuê theo ngày
+    deposit_amount: parseFloat(item.deposit_amount || 0), // Tiền cọc
+    images: item.images,
+    character_name: item.character_name,
+    size: item.size
+  }));
+
+  res.json(formattedItems);
 };
 
 /**
@@ -28,11 +49,25 @@ export const addToCart = async (req, res) => {
     return res.status(400).json({ error: "Invalid product_id or quantity" });
   }
 
+  // Kiểm tra sản phẩm tồn tại
+  const productCheck = await pool.query(
+    "SELECT id, available_quantity FROM product WHERE id = $1",
+    [product_id]
+  );
+
+  if (productCheck.rows.length === 0) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  if (productCheck.rows[0].available_quantity < quantity) {
+    return res.status(400).json({ error: "Not enough quantity available" });
+  }
+
   const result = await pool.query(
     `INSERT INTO cart (user_id, product_id, quantity)
      VALUES ($1, $2, $3)
      ON CONFLICT (user_id, product_id) DO UPDATE 
-     SET quantity = cart.quantity + $3
+     SET quantity = cart.quantity + $3, updated_at = CURRENT_TIMESTAMP
      RETURNING *`,
     [req.user.id, product_id, quantity]
   );

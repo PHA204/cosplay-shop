@@ -1,3 +1,4 @@
+// src/controllers/productController.js - UPDATED FOR RENTAL SYSTEM
 import pool from "../config/database.js";
 
 // 🧠 Lấy danh sách sản phẩm (có lọc, tìm kiếm, phân trang)
@@ -5,7 +6,13 @@ export const getAllProducts = async (req, res) => {
   const { category_id, search, page = 1, limit = 20 } = req.query;
   const offset = (page - 1) * limit;
 
-  let query = "SELECT * FROM product WHERE 1=1";
+  let query = `SELECT 
+    id, name, character_name, 
+    daily_price, weekly_price, deposit_amount,
+    images, size, condition, 
+    total_quantity, available_quantity,
+    description, category_id, created_at
+  FROM product WHERE 1=1`;
   const params = [];
 
   if (category_id) {
@@ -32,6 +39,14 @@ export const getAllProducts = async (req, res) => {
 
   const result = await pool.query(query, params);
 
+  // Format giá trị
+  const formattedProducts = result.rows.map(p => ({
+    ...p,
+    daily_price: parseFloat(p.daily_price),
+    weekly_price: p.weekly_price ? parseFloat(p.weekly_price) : null,
+    deposit_amount: parseFloat(p.deposit_amount || 0)
+  }));
+
   // Tổng số dòng
   const countResult = await pool.query(
     "SELECT COUNT(*) FROM product WHERE 1=1" +
@@ -53,7 +68,7 @@ export const getAllProducts = async (req, res) => {
   );
 
   res.json({
-    data: result.rows,
+    data: formattedProducts,
     total: Number.parseInt(countResult.rows[0].count),
     page: Number.parseInt(page),
     limit: Number.parseInt(limit),
@@ -64,18 +79,33 @@ export const getAllProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
   const { id } = req.params;
 
-  const productResult = await pool.query("SELECT * FROM product WHERE id = $1", [id]);
+  const productResult = await pool.query(
+    `SELECT 
+      id, name, character_name, 
+      daily_price, weekly_price, deposit_amount,
+      images, size, condition, 
+      total_quantity, available_quantity,
+      description, category_id, created_at, updated_at
+    FROM product WHERE id = $1`, 
+    [id]
+  );
 
   if (productResult.rows.length === 0) {
     return res.status(404).json({ error: "Product not found" });
   }
 
-  const variantsResult = await pool.query("SELECT * FROM product_variants WHERE product_id = $1", [id]);
+  const product = productResult.rows[0];
+  
+  // Format giá trị
+  const formattedProduct = {
+    ...product,
+    daily_price: parseFloat(product.daily_price),
+    weekly_price: product.weekly_price ? parseFloat(product.weekly_price) : null,
+    deposit_amount: parseFloat(product.deposit_amount || 0)
+  };
 
-  res.json({
-    ...productResult.rows[0],
-    variants: variantsResult.rows,
-  });
+  // Không cần variants vì đã có size trong product
+  res.json(formattedProduct);
 };
 
 // 🧠 Lấy danh sách tất cả danh mục

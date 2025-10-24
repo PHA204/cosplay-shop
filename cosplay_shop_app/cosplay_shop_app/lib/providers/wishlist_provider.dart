@@ -1,4 +1,4 @@
-// lib/providers/wishlist_provider.dart
+// lib/providers/wishlist_provider.dart - COMPLETE FIX
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/wishlist_service.dart';
@@ -9,6 +9,9 @@ class WishlistProvider with ChangeNotifier {
   List<Product> _items = [];
   bool _loading = false;
   String? _error;
+  
+  // Cache để kiểm tra nhanh
+  Set<String> _wishlistIds = {};
 
   List<Product> get items => _items;
   bool get loading => _loading;
@@ -23,11 +26,17 @@ class WishlistProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('📋 WishlistProvider: Loading wishlist...');
       _items = await _service.getWishlist();
-      print('✅ Loaded ${_items.length} wishlist items');
+      
+      // Cập nhật cache
+      _wishlistIds = _items.map((item) => item.id).toSet();
+      
+      print('✅ WishlistProvider: Loaded ${_items.length} wishlist items');
+      print('📝 WishlistProvider: IDs = $_wishlistIds');
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');
-      print('❌ Load wishlist error: $_error');
+      print('❌ WishlistProvider: Load wishlist error: $_error');
     } finally {
       _loading = false;
       notifyListeners();
@@ -37,14 +46,21 @@ class WishlistProvider with ChangeNotifier {
   // Thêm sản phẩm vào wishlist
   Future<bool> addToWishlist(String productId) async {
     try {
-      print('➕ Adding product $productId to wishlist');
+      print('➕ WishlistProvider: Adding product $productId to wishlist');
       await _service.addToWishlist(productId);
-      await loadWishlist(); // Reload wishlist
-      print('✅ Added to wishlist successfully');
+      
+      // Thêm vào cache ngay lập tức
+      _wishlistIds.add(productId);
+      notifyListeners();
+      
+      // Reload để lấy thông tin đầy đủ
+      await loadWishlist();
+      
+      print('✅ WishlistProvider: Added to wishlist successfully');
       return true;
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');
-      print('❌ Add to wishlist error: $_error');
+      print('❌ WishlistProvider: Add to wishlist error: $_error');
       notifyListeners();
       return false;
     }
@@ -53,15 +69,19 @@ class WishlistProvider with ChangeNotifier {
   // Xóa sản phẩm khỏi wishlist
   Future<bool> removeFromWishlist(String productId) async {
     try {
-      print('➖ Removing product $productId from wishlist');
+      print('➖ WishlistProvider: Removing product $productId from wishlist');
       await _service.removeFromWishlist(productId);
+      
+      // Xóa khỏi cache và list ngay
+      _wishlistIds.remove(productId);
       _items.removeWhere((item) => item.id == productId);
-      print('✅ Removed from wishlist successfully');
       notifyListeners();
+      
+      print('✅ WishlistProvider: Removed from wishlist successfully');
       return true;
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');
-      print('❌ Remove from wishlist error: $_error');
+      print('❌ WishlistProvider: Remove from wishlist error: $_error');
       notifyListeners();
       return false;
     }
@@ -69,17 +89,20 @@ class WishlistProvider with ChangeNotifier {
 
   // Toggle wishlist (thêm/xóa)
   Future<bool> toggleWishlist(String productId) async {
-    if (isInWishlist(productId)) {
+    final isInList = isInWishlist(productId);
+    print('🔄 WishlistProvider: Toggle wishlist for $productId (currently: $isInList)');
+    
+    if (isInList) {
       return await removeFromWishlist(productId);
     } else {
       return await addToWishlist(productId);
     }
   }
 
-  // Kiểm tra sản phẩm đã có trong wishlist chưa
+  // Kiểm tra sản phẩm đã có trong wishlist chưa (dùng cache)
   bool isInWishlist(String productId) {
-    final result = _items.any((item) => item.id == productId);
-    print('🔍 Product $productId in wishlist: $result');
+    final result = _wishlistIds.contains(productId);
+    // print('🔍 WishlistProvider: Product $productId in wishlist: $result');
     return result;
   }
 
