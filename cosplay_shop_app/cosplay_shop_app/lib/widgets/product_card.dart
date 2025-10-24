@@ -4,10 +4,12 @@ import '../models/product.dart';
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
+  final VoidCallback? onAddToCart;
   
   const ProductCard({
     required this.product,
     this.onTap,
+    this.onAddToCart,
     super.key,
   });
 
@@ -236,22 +238,7 @@ class ProductCard extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.all(6),
                             constraints: const BoxConstraints(),
-                            onPressed: () {
-                              // Add to cart
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Đã thêm vào giỏ hàng'),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2),
-                                  action: SnackBarAction(
-                                    label: 'Xem',
-                                    onPressed: () {
-                                      // Navigate to cart
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
+                            onPressed: onAddToCart,
                           ),
                         ),
                       ],

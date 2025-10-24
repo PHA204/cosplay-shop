@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
+import 'login_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -8,41 +12,119 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Mock cart items - Replace with actual cart provider
-  final List<Map<String, dynamic>> _cartItems = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadCart();
+  }
+
+  Future<void> _loadCart() async {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      await context.read<CartProvider>().loadCart();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final total = _calculateTotal();
+    final cartProvider = context.watch<CartProvider>();
+    final authProvider = context.watch<AuthProvider>();
 
+    // Chưa đăng nhập
+    if (!authProvider.isAuthenticated) {
+      return _buildNotLoggedIn(context, theme);
+    }
+
+    // Loading
+    if (cartProvider.loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Giỏ hàng')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Empty cart
+    if (cartProvider.items.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Giỏ hàng')),
+        body: _buildEmptyCart(theme),
+      );
+    }
+
+    // Cart with items
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Giỏ hàng'),
+        title: Text('Giỏ hàng (${cartProvider.itemCount})'),
         actions: [
-          if (_cartItems.isNotEmpty)
-            TextButton(
-              onPressed: _showClearCartDialog,
-              child: const Text('Xóa tất cả'),
-            ),
+          TextButton(
+            onPressed: () => _showClearCartDialog(context),
+            child: const Text('Xóa tất cả'),
+          ),
         ],
       ),
-      body: _cartItems.isEmpty
-          ? _buildEmptyCart(theme)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _cartItems.length,
-                    itemBuilder: (context, index) {
-                      return _buildCartItem(theme, _cartItems[index], index);
-                    },
-                  ),
-                ),
-                _buildBottomBar(theme, total),
-              ],
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: cartProvider.items.length,
+              itemBuilder: (context, index) {
+                final item = cartProvider.items[index];
+                return _buildCartItem(context, theme, item);
+              },
             ),
+          ),
+          _buildBottomBar(context, theme, cartProvider),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotLoggedIn(BuildContext context, ThemeData theme) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Giỏ hàng')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.shopping_cart_outlined,
+                size: 100,
+                color: theme.colorScheme.primary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Bạn chưa đăng nhập',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Đăng nhập để xem giỏ hàng của bạn',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                icon: const Icon(Icons.login),
+                label: const Text('Đăng nhập'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -72,7 +154,9 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(height: 32),
           FilledButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // Navigate to home - đổi tab sang trang chủ
+            },
             icon: const Icon(Icons.shopping_bag_outlined),
             label: const Text('Tiếp tục mua sắm'),
           ),
@@ -81,9 +165,11 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartItem(ThemeData theme, Map<String, dynamic> item, int index) {
+  Widget _buildCartItem(BuildContext context, ThemeData theme, dynamic item) {
+    final cartProvider = context.read<CartProvider>();
+    
     return Dismissible(
-      key: Key('cart_item_$index'),
+      key: Key(item.id),
       direction: DismissDirection.endToStart,
       background: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -99,21 +185,11 @@ class _CartScreenState extends State<CartScreen> {
         ),
       ),
       onDismissed: (direction) {
-        setState(() {
-          _cartItems.removeAt(index);
-        });
+        cartProvider.removeItem(item.id);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Đã xóa khỏi giỏ hàng'),
+          const SnackBar(
+            content: Text('Đã xóa khỏi giỏ hàng'),
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Hoàn tác',
-              onPressed: () {
-                setState(() {
-                  _cartItems.insert(index, item);
-                });
-              },
-            ),
           ),
         );
       },
@@ -130,10 +206,21 @@ class _CartScreenState extends State<CartScreen> {
                   width: 80,
                   height: 80,
                   color: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.image,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  child: item.images.isNotEmpty
+                      ? Image.network(
+                          item.images[0],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.broken_image,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            );
+                          },
+                        )
+                      : Icon(
+                          Icons.image,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -144,7 +231,7 @@ class _CartScreenState extends State<CartScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tên sản phẩm',
+                      item.name,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -152,15 +239,16 @@ class _CartScreenState extends State<CartScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Nhân vật',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (item.size != null)
+                      Text(
+                        'Size: ${item.size}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                     Text(
-                      '500.000 ₫',
+                      '${_formatPrice(item.price)} ₫',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -171,50 +259,48 @@ class _CartScreenState extends State<CartScreen> {
               ),
               
               // Quantity Controls
-              Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outline,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add, size: 20),
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            // Increase quantity
-                          },
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            '1',
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.remove, size: 20),
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            // Decrease quantity
-                          },
-                        ),
-                      ],
-                    ),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: theme.colorScheme.outline,
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 20),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        cartProvider.incrementQuantity(item.id);
+                      },
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '${item.quantity}',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 20),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: item.quantity > 1
+                          ? () {
+                              cartProvider.decrementQuantity(item.id);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -223,7 +309,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildBottomBar(ThemeData theme, double total) {
+  Widget _buildBottomBar(BuildContext context, ThemeData theme, dynamic cartProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -251,7 +337,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                 ),
                 Text(
-                  '${_formatPrice(total)} ₫',
+                  '${_formatPrice(cartProvider.totalAmount)} ₫',
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -266,7 +352,7 @@ class _CartScreenState extends State<CartScreen> {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () {
-                  // Navigate to checkout
+                  _showCheckoutDialog(context);
                 },
                 icon: const Icon(Icons.payment),
                 label: const Text('Thanh toán'),
@@ -281,12 +367,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  double _calculateTotal() {
-    // Calculate total from cart items
-    return 0.0;
-  }
-
-  void _showClearCartDialog() {
+  void _showClearCartDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -298,13 +379,29 @@ class _CartScreenState extends State<CartScreen> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () {
-              setState(() {
-                _cartItems.clear();
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              await context.read<CartProvider>().clearCart();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCheckoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Thanh toán'),
+        content: const Text('Chức năng thanh toán đang được phát triển.\nVui lòng thử lại sau!'),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
           ),
         ],
       ),

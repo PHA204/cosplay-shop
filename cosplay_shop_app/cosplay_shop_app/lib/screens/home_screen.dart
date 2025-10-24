@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = 'all';
   
   @override
   void initState() {
@@ -58,44 +62,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.shopping_bag_outlined,
-                              color: theme.colorScheme.onPrimary,
-                              size: 32,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Cosplay Shop',
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                color: theme.colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              icon: Icon(
-                                Icons.favorite_border,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                              onPressed: () {
-                                // Navigate to wishlist
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.shopping_cart_outlined,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                              onPressed: () {
-                                // Navigate to cart
-                              },
-                            ),
-                          ],
+                        Icon(
+                          Icons.shopping_bag_outlined,
+                          color: theme.colorScheme.onPrimary,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Cosplay Shop',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(
+                            Icons.person_outline,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                          onPressed: () {
+                            final isAuth = context.read<AuthProvider>().isAuthenticated;
+                            if (!isAuth) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -117,7 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.filter_list),
                     onPressed: () {
-                      // Show filter options
+                      // Show filter bottom sheet
+                      _showFilterSheet(context);
                     },
                   ),
                 ),
@@ -136,11 +133,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  _buildCategoryChip(context, 'Tất cả', true),
-                  _buildCategoryChip(context, 'Anime', false),
-                  _buildCategoryChip(context, 'Game', false),
-                  _buildCategoryChip(context, 'Movie', false),
-                  _buildCategoryChip(context, 'Phụ kiện', false),
+                  _buildCategoryChip(context, 'Tất cả', 'all'),
+                  _buildCategoryChip(context, 'Anime', 'anime'),
+                  _buildCategoryChip(context, 'Game', 'game'),
+                  _buildCategoryChip(context, 'Movie', 'movie'),
+                  _buildCategoryChip(context, 'Phụ kiện', 'accessories'),
                 ],
               ),
             ),
@@ -170,12 +167,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: theme.textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      prov.error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        prov.error!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
                     FilledButton.icon(
@@ -228,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (_) => ProductDetailScreen(productId: p.id),
                         ),
                       ),
+                      onAddToCart: () => _handleAddToCart(context, p.id),
                     );
                   },
                   childCount: prov.products.length,
@@ -239,15 +240,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryChip(BuildContext context, String label, bool selected) {
+  Widget _buildCategoryChip(BuildContext context, String label, String value) {
     final theme = Theme.of(context);
+    final selected = _selectedCategory == value;
+    
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
         label: Text(label),
         selected: selected,
-        onSelected: (value) {
-          // Handle category selection
+        onSelected: (isSelected) {
+          setState(() {
+            _selectedCategory = value;
+          });
+          // TODO: Filter products by category
         },
         backgroundColor: theme.colorScheme.surface,
         selectedColor: theme.colorScheme.primaryContainer,
@@ -259,5 +265,97 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _showFilterSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bộ lọc',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.sort),
+              title: const Text('Sắp xếp theo'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // Show sort options
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: const Text('Khoảng giá'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // Show price range
+              },
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Áp dụng'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleAddToCart(BuildContext context, String productId) async {
+    final authProvider = context.read<AuthProvider>();
+    
+    if (!authProvider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Vui lòng đăng nhập để thêm vào giỏ hàng'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Đăng nhập',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    final cartProvider = context.read<CartProvider>();
+    final success = await cartProvider.addToCart(productId);
+    
+    if (context.mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm vào giỏ hàng'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(cartProvider.error ?? 'Có lỗi xảy ra'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 }
