@@ -1,7 +1,7 @@
 // src/controllers/productController.js - UPDATED FOR RENTAL SYSTEM
 import pool from "../config/database.js";
 
-// 🧠 Lấy danh sách sản phẩm (có lọc, tìm kiếm, phân trang)
+// 🧠 Lấy danh sách sản phẩm (có lọc, tìm kiếm, phân trang, sắp xếp)
 export const getAllProducts = async (req, res) => {
   const { category_id, search, page = 1, limit = 20 } = req.query;
   const offset = (page - 1) * limit;
@@ -14,7 +14,7 @@ export const getAllProducts = async (req, res) => {
     description, category_id, created_at
   FROM product WHERE 1=1`;
   const params = [];
-
+ 
   if (category_id) {
     query += " AND category_id = $" + (params.length + 1);
     params.push(category_id);
@@ -112,4 +112,21 @@ export const getProductById = async (req, res) => {
 export const getAllCategories = async (req, res) => {
   const result = await pool.query("SELECT * FROM category ORDER BY name");
   res.json(result.rows);
+};
+
+// src/controllers/productController.js
+export const checkProductAvailability = async (req, res) => {
+  const { id } = req.params;
+  const { start_date, end_date, quantity = 1 } = req.query;
+  
+  const result = await pool.query(
+    `SELECT check_product_availability($1, $2, $3, $4) as available`,
+    [id, parseInt(quantity), start_date, end_date]
+  );
+  
+  res.json({ 
+    available: result.rows[0].available,
+    product_id: id,
+    requested_quantity: parseInt(quantity)
+  });
 };
