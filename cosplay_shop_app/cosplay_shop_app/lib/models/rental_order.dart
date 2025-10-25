@@ -45,8 +45,19 @@ class RentalOrderItem {
 class RentalOrder {
   final String id;
   final String orderNumber;
+  
+  // Expected dates (khách chọn khi đặt đơn)
+  final DateTime expectedStartDate;
+  final DateTime expectedEndDate;
+  
+  // Actual dates (khi thực tế giao hàng)
+  final DateTime? actualStartDate;
+  final DateTime? actualEndDate;
+  
+  // Legacy fields (giữ lại để tương thích)
   final DateTime rentalStartDate;
   final DateTime rentalEndDate;
+  
   final int rentalDays;
   final double subtotal;
   final double depositTotal;
@@ -67,6 +78,10 @@ class RentalOrder {
   RentalOrder({
     required this.id,
     required this.orderNumber,
+    required this.expectedStartDate,
+    required this.expectedEndDate,
+    this.actualStartDate,
+    this.actualEndDate,
     required this.rentalStartDate,
     required this.rentalEndDate,
     required this.rentalDays,
@@ -86,11 +101,40 @@ class RentalOrder {
   });
 
   factory RentalOrder.fromJson(Map<String, dynamic> json) {
+    // Parse expected dates (luôn có)
+    final expectedStart = json['expected_start_date'] != null
+        ? DateTime.parse(json['expected_start_date'])
+        : DateTime.parse(json['rental_start_date']); // Fallback cho data cũ
+    
+    final expectedEnd = json['expected_end_date'] != null
+        ? DateTime.parse(json['expected_end_date'])
+        : DateTime.parse(json['rental_end_date']); // Fallback cho data cũ
+    
+    // Parse actual dates (nullable)
+    final actualStart = json['actual_start_date'] != null
+        ? DateTime.parse(json['actual_start_date'])
+        : null;
+    
+    final actualEnd = json['actual_end_date'] != null
+        ? DateTime.parse(json['actual_end_date'])
+        : null;
+
     return RentalOrder(
       id: json['id'].toString(),
       orderNumber: json['order_number'] ?? '',
+      
+      // Expected dates
+      expectedStartDate: expectedStart,
+      expectedEndDate: expectedEnd,
+      
+      // Actual dates
+      actualStartDate: actualStart,
+      actualEndDate: actualEnd,
+      
+      // Legacy fields (giữ tương thích)
       rentalStartDate: DateTime.parse(json['rental_start_date']),
       rentalEndDate: DateTime.parse(json['rental_end_date']),
+      
       rentalDays: json['rental_days'] ?? 1,
       subtotal: (json['subtotal'] is int)
           ? (json['subtotal'] as int).toDouble()
@@ -171,17 +215,29 @@ class RentalOrder {
     }
   }
 
-  bool get canCancel => status == 'pending';
+  bool get canCancel => status == 'pending' || status == 'confirmed';
   
-  bool get isActive => ['confirmed', 'preparing', 'delivering', 'rented'].contains(status);
+  // THAY ĐỔI QUAN TRỌNG: isActive chỉ cho status 'rented'
+  bool get isActive => status == 'rented';
   
+  // THAY ĐỔI QUAN TRỌNG: isOverdue chỉ check khi có actual_end_date
   bool get isOverdue {
     if (status != 'rented') return false;
-    return DateTime.now().isAfter(rentalEndDate);
+    if (actualEndDate == null) return false;
+    return DateTime.now().isAfter(actualEndDate!);
   }
   
+  // THAY ĐỔI QUAN TRỌNG: daysUntilReturn dùng actual_end_date
   int get daysUntilReturn {
     if (status != 'rented') return 0;
-    return rentalEndDate.difference(DateTime.now()).inDays;
+    if (actualEndDate == null) return 0;
+    return actualEndDate!.difference(DateTime.now()).inDays;
   }
+  
+  // Helper: Kiểm tra đơn đang trong quá trình chuẩn bị
+  bool get isPreparing => ['confirmed', 'preparing', 'delivering'].contains(status);
+  
+  // Helper: Lấy ngày hiển thị cho timeline
+  DateTime get displayStartDate => actualStartDate ?? expectedStartDate;
+  DateTime get displayEndDate => actualEndDate ?? expectedEndDate;
 }

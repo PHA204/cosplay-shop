@@ -1,3 +1,4 @@
+import 'package:cosplay_shop_app/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
@@ -6,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'login_screen.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,18 +19,40 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'all';
-  
+  Timer? _debounce;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ProductProvider>(context, listen: false).loadProducts();
     });
+     _searchController.addListener(_onSearchChanged);
   }
-
+ 
+ void _onSearchChanged() {
+  // Hủy timer cũ nếu có
+  if (_debounce?.isActive ?? false) _debounce!.cancel();
+  
+  // Tạo timer mới, chờ 500ms sau khi user ngừng gõ
+  _debounce = Timer(const Duration(milliseconds: 500), () {
+    final query = _searchController.text.trim();
+    
+    print('🔍 Searching for: $query');
+    
+    if (query.isEmpty) {
+      // Nếu xóa hết text, load lại toàn bộ sản phẩm
+      Provider.of<ProductProvider>(context, listen: false).loadProducts();
+    } else {
+      // Tìm kiếm với từ khóa
+      Provider.of<ProductProvider>(context, listen: false)
+          .loadProducts(search: query);
+    }
+  });
+}
   @override
   void dispose() {
     _searchController.dispose();
+     _debounce?.cancel();
     super.dispose();
   }
 
@@ -79,20 +103,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: Icon(
-                            Icons.person_outline,
-                            color: theme.colorScheme.onPrimary,
-                          ),
-                          onPressed: () {
-                            final isAuth = context.read<AuthProvider>().isAuthenticated;
-                            if (!isAuth) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                              );
-                            }
-                          },
+                        icon: Icon(
+                          Icons.person_outline,
+                          color: theme.colorScheme.onPrimary,
                         ),
+                        onPressed: () {
+                          final authProvider = context.read<AuthProvider>();
+                          
+                          if (authProvider.isAuthenticated) {
+                            // Nếu đã đăng nhập, chuyển đến tab Profile
+                            // Cần truy cập MainNavigation để đổi tab
+                            final navigator = Navigator.of(context);
+                            // Pop về root nếu đang ở screen khác
+                            navigator.popUntil((route) => route.isFirst);
+                            
+                            // Sau đó trigger đổi tab (cần implement callback từ MainNavigation)
+                            // Tạm thời dùng cách đơn giản: push ProfileScreen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            );
+                          } else {
+                            // Nếu chưa đăng nhập, hiện màn hình đăng nhập
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            );
+                          }
+                        },
+                      ),
                       ],
                     ),
                   ),
@@ -101,30 +140,51 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+         // Search Bar
           // Search Bar
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm cosplay...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      // Show filter bottom sheet
-                      _showFilterSheet(context);
-                    },
-                  ),
-                ),
-                onSubmitted: (value) {
-                  // Search functionality
+              child: Consumer<ProductProvider>(
+                builder: (context, productProvider, _) {
+                  return TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm cosplay...',
+                      prefixIcon: productProvider.loading 
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : const Icon(Icons.search),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              _showFilterSheet(context);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
           ),
-
           // Categories
           SliverToBoxAdapter(
             child: SizedBox(
@@ -146,9 +206,26 @@ class _HomeScreenState extends State<HomeScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
           // Products Grid
+          // Products Grid
           if (prov.loading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+            SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchController.text.isNotEmpty 
+                            ? 'Đang tìm kiếm "${_searchController.text}"...'
+                            : 'Đang tải sản phẩm...',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             )
           else if (prov.error != null)
             SliverFillRemaining(
@@ -250,11 +327,8 @@ class _HomeScreenState extends State<HomeScreen> {
         label: Text(label),
         selected: selected,
         onSelected: (isSelected) {
-          setState(() {
-            _selectedCategory = value;
-          });
-          // TODO: Filter products by category
-        },
+       _handleCategoryFilter(value);
+       },
         backgroundColor: theme.colorScheme.surface,
         selectedColor: theme.colorScheme.primaryContainer,
         labelStyle: TextStyle(
@@ -265,8 +339,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
+      }
+    void _handleCategoryFilter(String category) {
+      setState(() {
+        _selectedCategory = category;
+      });
+      
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      
+      if (category == 'all') {
+        provider.loadProducts(search: _searchController.text.trim().isNotEmpty ? _searchController.text.trim() : null);
+      } else {
+        // Cần thêm mapping category name -> ID từ database
+        // Tạm thời dùng search theo tên category
+        provider.loadProducts(
+          search: _searchController.text.trim().isNotEmpty ? _searchController.text.trim() : null,
+          // categoryId: category, // Uncomment khi có category ID
+        );
+      }
+    }
   void _showFilterSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
