@@ -244,31 +244,24 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // 🔥 LOGIC QUAN TRỌNG: Auto-set actual dates khi chuyển sang 'rented'
+    // 🔥 CASE 1: Chuyển sang 'rented' - Auto-set actual dates
     if (status === 'rented' && oldStatus !== 'rented') {
       const actualStartDate = new Date();
       const actualEndDate = new Date(actualStartDate);
       actualEndDate.setDate(actualEndDate.getDate() + order.rental_days);
 
-      const updateQuery = `
-        UPDATE rental_order 
-        SET 
-          status = $1,
-          actual_start_date = $2,
-          actual_end_date = $3,
-          notes = COALESCE($4, notes),
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $5
-        RETURNING *
-      `;
-
-      const result = await pool.query(updateQuery, [
-        status,
-        actualStartDate,
-        actualEndDate,
-        notes,
-        id
-      ]);
+      const result = await pool.query(
+        `UPDATE rental_order 
+         SET 
+           status = $1,
+           actual_start_date = $2,
+           actual_end_date = $3,
+           notes = COALESCE($4, notes),
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $5
+         RETURNING *`,
+        [status, actualStartDate, actualEndDate, notes, id]
+      );
 
       console.log(`✅ Order ${order.order_number} started renting:`, {
         actual_start_date: actualStartDate,
@@ -300,7 +293,79 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Update status thông thường
+    // 🔥 CASE 2: Chuyển sang 'completed' từ 'returning' hoặc 'rented'
+    // Tự động xử lý hoàn trả với giả định không có phí phạt
+    if (status === 'completed' && ['returning', 'rented'].includes(oldStatus)) {
+      const actualReturnDate = new Date();
+      const expected = new Date(order.actual_end_date || order.expected_end_date);
+      let lateFee = 0;
+
+      // Tính phí trễ nếu trả muộn
+      if (actualReturnDate > expected) {
+        const lateDays = Math.ceil((actualReturnDate - expected) / (1000 * 60 * 60 * 24));
+        const avgPriceResult = await pool.query(
+          `SELECT AVG(daily_price) as avg_price 
+           FROM rental_order_detail 
+           WHERE rental_order_id = $1`,
+          [id]
+        );
+        const avgDailyPrice = parseFloat(avgPriceResult.rows[0].avg_price || 0);
+        lateFee = lateDays * avgDailyPrice * 1.5;
+      }
+
+      // Giả định không có hư hỏng nếu admin không xử lý qua return modal
+      const damageFee = 0;
+      const refundAmount = Math.max(0, parseFloat(order.deposit_total) - lateFee - damageFee);
+
+      const result = await pool.query(
+        `UPDATE rental_order 
+         SET 
+           status = 'completed',
+           actual_return_date = $1,
+           late_fee = $2,
+           damage_fee = $3,
+           refund_amount = $4,
+           payment_status = 'refunded',
+           notes = COALESCE($5, notes),
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $6
+         RETURNING *`,
+        [actualReturnDate, lateFee, damageFee, refundAmount, notes, id]
+      );
+
+      console.log(`✅ Order ${order.order_number} completed:`, {
+        actual_return_date: actualReturnDate,
+        late_fee: lateFee,
+        refund_amount: refundAmount
+      });
+
+      await pool.query(
+        `INSERT INTO activity_logs (admin_id, action, entity_type, entity_id, details)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          req.admin.id,
+          'complete_order',
+          'order',
+          id,
+          JSON.stringify({ 
+            old_status: oldStatus, 
+            new_status: 'completed',
+            actual_return_date: actualReturnDate,
+            late_fee: lateFee,
+            refund_amount: refundAmount
+          })
+        ]
+      );
+
+      return res.json({
+        message: "Order completed successfully!",
+        order: result.rows[0],
+        late_fee: lateFee,
+        refund_amount: refundAmount
+      });
+    }
+
+    // CASE 3: Update status thông thường
     const updateQuery = notes 
       ? "UPDATE rental_order SET status = $1, notes = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *"
       : "UPDATE rental_order SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *";
@@ -326,7 +391,10 @@ export const updateOrderStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Update order status error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ 
+      error: "Internal server error",
+      details: error.message 
+    });
   }
 };
 

@@ -29,7 +29,7 @@ function App() {
           >
             <Route index element={<Navigate to="/admin/orders" replace />} />
             <Route path="orders" element={<OrderManagement />} />
-            <Route path="products" element={<ProductManagement />} /> {/* Route mới */}
+            <Route path="products" element={<ProductManagement />} /> 
             <Route path="dashboard" element={<div>Dashboard (Coming soon)</div>} />
             <Route path="customers" element={<div>Customers (Coming soon)</div>} />
             <Route path="settings" element={<div>Settings (Coming soon)</div>} />

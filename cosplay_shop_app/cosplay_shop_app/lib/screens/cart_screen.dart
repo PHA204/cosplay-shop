@@ -1,3 +1,4 @@
+import 'package:cosplay_shop_app/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
@@ -156,7 +157,10 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 32),
           FilledButton.icon(
             onPressed: () {
-              // Navigate to home - đổi tab sang trang chủ
+              Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                      );
             },
             icon: const Icon(Icons.shopping_bag_outlined),
             label: const Text('Tiếp tục mua sắm'),

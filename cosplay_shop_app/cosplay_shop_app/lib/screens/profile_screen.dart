@@ -1,3 +1,4 @@
+import 'package:cosplay_shop_app/screens/wishlist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -103,7 +104,10 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.favorite_border,
                     title: 'Danh sách yêu thích',
                     onTap: () {
-                      // Navigate to wishlist
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WishlistScreen()),
+                      );
                     },
                   ),
                   _buildMenuItem(
