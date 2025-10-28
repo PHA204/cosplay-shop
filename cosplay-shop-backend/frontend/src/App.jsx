@@ -6,6 +6,7 @@ import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import AdminLayout from './layouts/AdminLayout';
 import OrderManagement from './pages/admin/OrderManagement';
+import ProductManagement from './pages/admin/ProductManagement'; // Import mới
 import Login from './pages/admin/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -28,8 +29,8 @@ function App() {
           >
             <Route index element={<Navigate to="/admin/orders" replace />} />
             <Route path="orders" element={<OrderManagement />} />
+            <Route path="products" element={<ProductManagement />} /> {/* Route mới */}
             <Route path="dashboard" element={<div>Dashboard (Coming soon)</div>} />
-            <Route path="products" element={<div>Products (Coming soon)</div>} />
             <Route path="customers" element={<div>Customers (Coming soon)</div>} />
             <Route path="settings" element={<div>Settings (Coming soon)</div>} />
           </Route>

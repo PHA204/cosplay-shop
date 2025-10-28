@@ -525,3 +525,69 @@ export const cancelOrder = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const updatePaymentStatus = async (req, res) => {
+  const { id } = req.params;
+  const { payment_status } = req.body;
+
+  const validPaymentStatuses = ['unpaid', 'paid', 'refunded'];
+  
+  if (!validPaymentStatuses.includes(payment_status)) {
+    return res.status(400).json({ error: "Invalid payment status" });
+  }
+
+  try {
+    // Get current order
+    const orderResult = await pool.query(
+      "SELECT * FROM rental_order WHERE id = $1",
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult.rows[0];
+    
+    // Không cho phép đổi nếu đã hoàn tiền
+    if (order.payment_status === 'refunded') {
+      return res.status(400).json({ 
+        error: "Cannot change payment status of refunded order" 
+      });
+    }
+
+    // Update payment status
+    const result = await pool.query(
+      `UPDATE rental_order 
+       SET payment_status = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [payment_status, id]
+    );
+
+    // Log activity
+    await pool.query(
+      `INSERT INTO activity_logs (admin_id, action, entity_type, entity_id, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        req.admin.id,
+        'update_payment_status',
+        'order',
+        id,
+        JSON.stringify({ 
+          old_status: order.payment_status, 
+          new_status: payment_status,
+          amount: order.total_amount
+        })
+      ]
+    );
+
+    res.json({
+      message: "Payment status updated successfully",
+      order: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Update payment status error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

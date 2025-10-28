@@ -13,6 +13,7 @@ import {
   updateOrderStatus,
   processReturn,
   cancelOrder,
+  updatePaymentStatus
 } from "../controllers/adminOrderController.js";
 
 const router = express.Router();
@@ -47,6 +48,11 @@ router.post(
   requireRole("admin", "super_admin"), 
   logActivity("cancel_order"), 
   cancelOrder
+);
+router.put(
+  "/:id/payment", 
+  logActivity("update_payment_status"), 
+  updatePaymentStatus
 );
 
 export default router;

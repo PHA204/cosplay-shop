@@ -91,19 +91,39 @@ const OrderManagement = () => {
   };
 
   // Update order status
-  const updateStatus = async (orderId, newStatus) => {
-    try {
-      await api.put(`/admin/orders/${orderId}/status`, { status: newStatus });
-      message.success('Cập nhật trạng thái thành công!');
-      fetchOrders();
-      if (detailModal.order?.id === orderId) {
-        viewDetail(orderId); // Refresh detail
-      }
-    } catch (error) {
-      message.error(error.response?.data?.error || 'Không thể cập nhật trạng thái');
-    }
-  };
+    const updateStatus = async (orderId, newStatus, paymentStatus = null) => {
+      try {
+        const payload = { status: newStatus };
+        
+        // Nếu có payment_status thì thêm vào
+        if (paymentStatus) {
+          payload.payment_status = paymentStatus;
+        }
 
+        await api.put(`/admin/orders/${orderId}/status`, payload);
+        message.success('Cập nhật trạng thái thành công!');
+        fetchOrders();
+        if (detailModal.order?.id === orderId) {
+          viewDetail(orderId);
+        }
+      } catch (error) {
+        message.error(error.response?.data?.error || 'Không thể cập nhật trạng thái');
+      }
+    };
+    const updatePaymentStatus = async (orderId, paymentStatus) => {
+      try {
+        await api.put(`/admin/orders/${orderId}/payment`, { 
+          payment_status: paymentStatus 
+        });
+        message.success('Cập nhật trạng thái thanh toán thành công!');
+        fetchOrders();
+        if (detailModal.order?.id === orderId) {
+          viewDetail(orderId);
+        }
+      } catch (error) {
+        message.error(error.response?.data?.error || 'Không thể cập nhật');
+      }
+    };
   // Open return modal
   const openReturnModal = async (orderId) => {
     try {
@@ -520,30 +540,140 @@ const OrderManagement = () => {
                   {detailModal.order.payment_method}
                 </Descriptions.Item>
               </Descriptions>
+             
+              <Card title="💰 Thanh toán" size="small" style={{ marginBottom: 16 }}>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Statistic
+                      title="Trạng thái thanh toán"
+                      value={
+                        detailModal.order.payment_status === 'paid' ? 'Đã thanh toán' :
+                        detailModal.order.payment_status === 'unpaid' ? 'Chưa thanh toán' :
+                        'Đã hoàn tiền'
+                      }
+                      valueStyle={{ 
+                        color: 
+                          detailModal.order.payment_status === 'paid' ? '#52c41a' :
+                          detailModal.order.payment_status === 'unpaid' ? '#fa8c16' :
+                          '#1890ff'
+                      }}
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Statistic
+                      title="Tổng tiền"
+                      value={detailModal.order.total_amount}
+                      suffix="đ"
+                      valueStyle={{ fontSize: 20 }}
+                    />
+                  </Col>
+                </Row>
 
+                {/* Button cập nhật payment status */}
+                {detailModal.order.payment_status === 'unpaid' && 
+                detailModal.order.status !== 'cancelled' && (
+                  <div style={{ marginTop: 16 }}>
+                    <Popconfirm
+                      title="Xác nhận khách hàng đã thanh toán?"
+                      description={
+                        <div>
+                          <p>Tổng tiền: <strong>{detailModal.order.total_amount.toLocaleString()}đ</strong></p>
+                          <p style={{ fontSize: 12, color: '#999' }}>
+                            Phương thức: {detailModal.order.payment_method}
+                          </p>
+                        </div>
+                      }
+                      onConfirm={() => updatePaymentStatus(detailModal.order.id, 'paid')}
+                      okText="Đã thanh toán"
+                      cancelText="Hủy"
+                    >
+                      <Button type="primary" icon={<CheckOutlined />}>
+                        Xác nhận đã thanh toán
+                      </Button>
+                    </Popconfirm>
+                  </div>
+                )}
+
+                {detailModal.order.payment_status === 'paid' && (
+                  <div style={{ marginTop: 16 }}>
+                    <Tag color="success" icon={<CheckOutlined />} style={{ fontSize: 14, padding: '4px 12px' }}>
+                      ✅ Đã thanh toán đầy đủ
+                    </Tag>
+                  </div>
+                )}
+              </Card>
               {/* Status Actions */}
               {getNextStatusOptions(detailModal.order.status).length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <strong>Chuyển trạng thái: </strong>
-                  <Space style={{ marginTop: 8 }}>
-                    {getNextStatusOptions(detailModal.order.status).map(status => (
-                      <Popconfirm
-                        key={status}
-                        title={`Xác nhận chuyển sang "${statusLabels[status]}"?`}
-                        onConfirm={() => {
-                          updateStatus(detailModal.order.id, status);
-                          setDetailModal({ visible: false, order: null });
-                        }}
-                      >
-                        <Button
-                          type={status === 'cancelled' ? 'default' : 'primary'}
-                          danger={status === 'cancelled'}
-                          size="small"
+                  <Space style={{ marginTop: 8 }} wrap>
+                    {getNextStatusOptions(detailModal.order.status).map(status => {
+                      // Nếu chuyển sang 'rented' và chưa thanh toán
+                      if (status === 'rented' && detailModal.order.payment_status === 'unpaid') {
+                        return (
+                          <Button
+                            key={status}
+                            type="primary"
+                            onClick={() => {
+                              // Show modal hỏi đã thanh toán chưa
+                              Modal.confirm({
+                                title: '💵 Xác nhận thanh toán',
+                                content: (
+                                  <div>
+                                    <p><strong>Khách hàng đã thanh toán chưa?</strong></p>
+                                    <p style={{ color: '#666', fontSize: 14 }}>
+                                      Tổng tiền: <strong style={{ color: '#1890ff' }}>
+                                        {detailModal.order.total_amount.toLocaleString()}đ
+                                      </strong>
+                                    </p>
+                                    <p style={{ color: '#999', fontSize: 12 }}>
+                                      • Tiền thuê: {detailModal.order.subtotal.toLocaleString()}đ<br/>
+                                      • Tiền cọc: {detailModal.order.deposit_total.toLocaleString()}đ
+                                    </p>
+                                  </div>
+                                ),
+                                okText: '✅ Đã thanh toán',
+                                cancelText: '⏳ Chưa thanh toán',
+                                onOk: () => {
+                                  // Cập nhật cả status và payment_status
+                                  updateStatus(detailModal.order.id, 'rented', 'paid');
+                                  setDetailModal({ visible: false, order: null });
+                                },
+                                onCancel: () => {
+                                  // Chỉ cập nhật status, payment_status vẫn là 'unpaid'
+                                  updateStatus(detailModal.order.id, 'rented');
+                                  setDetailModal({ visible: false, order: null });
+                                  message.warning('Đơn hàng chuyển sang "Đang thuê" nhưng chưa thanh toán');
+                                },
+                              });
+                            }}
+                          >
+                            {statusLabels[status]}
+                          </Button>
+                        );
+                        
+                      }
+                      
+                      // Các trạng thái khác giữ nguyên
+                      return (
+                        <Popconfirm
+                          key={status}
+                          title={`Xác nhận chuyển sang "${statusLabels[status]}"?`}
+                          onConfirm={() => {
+                            updateStatus(detailModal.order.id, status);
+                            setDetailModal({ visible: false, order: null });
+                          }}
                         >
-                          {statusLabels[status]}
-                        </Button>
-                      </Popconfirm>
-                    ))}
+                          <Button
+                            type={status === 'cancelled' ? 'default' : 'primary'}
+                            danger={status === 'cancelled'}
+                            size="small"
+                          >
+                            {statusLabels[status]}
+                          </Button>
+                        </Popconfirm>
+                      );
+                    })}
                   </Space>
                 </div>
               )}
