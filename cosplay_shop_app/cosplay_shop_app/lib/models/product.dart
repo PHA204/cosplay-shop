@@ -29,6 +29,7 @@ class Product {
     this.condition,
     this.categoryId,
   });
+  double get deposit => depositAmount;
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(

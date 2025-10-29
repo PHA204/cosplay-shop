@@ -1,5 +1,6 @@
 // lib/models/cart_item.dart - UPDATED FOR RENTAL SYSTEM
 class CartItem {
+  final double depositAmount;
   final String id;
   final String productId;
   final String name;
@@ -18,8 +19,9 @@ class CartItem {
     required this.images,
     this.size,
     this.color,
+    required this.depositAmount
   });
-
+  
   factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
       id: json['id'].toString(),
@@ -27,6 +29,7 @@ class CartItem {
       name: json['name'] ?? '',
       // Backend trả về daily_price cho rental system
       price: _parsePrice(json['daily_price'] ?? json['price']),
+      depositAmount: _parsePrice(json['deposit_amount']),
       quantity: json['quantity'] ?? 1,
       images: json['images'] ?? [],
       size: json['size'],
@@ -40,6 +43,7 @@ class CartItem {
       'product_id': productId,
       'name': name,
       'price': price,
+      'deposit_amount': depositAmount,
       'quantity': quantity,
       'images': images,
       'size': size,
@@ -52,6 +56,7 @@ class CartItem {
     String? productId,
     String? name,
     double? price,
+    double? depositAmount,
     int? quantity,
     List<dynamic>? images,
     String? size,
@@ -63,6 +68,7 @@ class CartItem {
       name: name ?? this.name,
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
+      depositAmount: depositAmount ?? this.depositAmount,
       images: images ?? this.images,
       size: size ?? this.size,
       color: color ?? this.color,
@@ -71,7 +77,7 @@ class CartItem {
 
   // Tính tổng giá theo ngày (sẽ nhân với số ngày thuê khi checkout)
   double get totalPrice => price * quantity;
-
+  double get totalDeposit => depositAmount * quantity;
   // Helper method
   static double _parsePrice(dynamic value) {
     if (value == null) return 0.0;

@@ -1,4 +1,5 @@
 // lib/screens/rental_checkout_screen.dart
+//import 'package:cosplay_shop_app/models/product.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
@@ -67,7 +68,6 @@ class _RentalCheckoutScreenState extends State<RentalCheckoutScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cartProvider = context.watch<CartProvider>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Thuê trang phục'),
@@ -710,12 +710,11 @@ ${_noteController.text.isNotEmpty ? 'Ghi chú: ${_noteController.text}' : ''}
       sum + (item.price * _rentalDays * item.quantity));
   }
 
-  double _calculateDeposit(CartProvider cartProvider) {
-    // Deposit calculation - using 50% of daily price per item
-    // You can adjust this logic based on your business rules
-    return cartProvider.items.fold(0.0, (sum, item) => 
-      sum + (item.price * 0.5 * item.quantity));
-  }
+ double _calculateDeposit(CartProvider cartProvider) {
+  return cartProvider.items.fold(0.0, (sum, item) =>
+      sum + item.totalDeposit);
+}
+
 
   double _calculateTotal(CartProvider cartProvider) {
     return _calculateSubtotal(cartProvider) + _calculateDeposit(cartProvider);

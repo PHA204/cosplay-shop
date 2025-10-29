@@ -31,27 +31,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   
   // NEW: Size & Color Selection
   String? _selectedSize;
-  String? _selectedColor;
-  final List<String> _availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  final List<Map<String, dynamic>> _availableColors = [
-    {'name': 'Đỏ', 'color': Colors.red},
-    {'name': 'Xanh', 'color': Colors.blue},
-    {'name': 'Đen', 'color': Colors.black},
-    {'name': 'Trắng', 'color': Colors.white},
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
+  List<String> _availableSizes =  [];
   Future<void> _load() async {
     try {
       product = await _service.fetchProductById(widget.productId);
       // Set default size
-      if (_availableSizes.isNotEmpty) {
-        _selectedSize = _availableSizes[2]; // Default to L
+      if (product?.size == "Free Size") {
+        _availableSizes = ['S', 'M', 'L', 'XL', 'XXL']; 
+      }
+      else {
+       _availableSizes = product!.size!
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
       }
     } catch (e) {
       error = e.toString();
@@ -59,6 +52,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       setState(() { loading = false; });
     }
   }
+  
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -279,8 +280,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           setState(() {
                             _selectedSize = selected ? size : null;
                           });
-                        },
-                        selectedColor: theme.colorScheme.primaryContainer,
+                        },                        
                         labelStyle: TextStyle(
                           color: isSelected
                               ? theme.colorScheme.onPrimaryContainer
@@ -293,55 +293,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // Color Selection
-                  Text(
-                    'Chọn màu sắc',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: _availableColors.map((colorData) {
-                      final isSelected = _selectedColor == colorData['name'];
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = colorData['name'];
-                          });
-                        },
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: colorData['color'],
-                            border: Border.all(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.outline,
-                              width: isSelected ? 3 : 1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: isSelected
-                              ? Icon(
-                                  Icons.check,
-                                  color: colorData['color'] == Colors.white ||
-                                          colorData['color'] == Colors.yellow
-                                      ? Colors.black
-                                      : Colors.white,
-                                )
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
                   
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
                   
                   // Quantity Selector
                   Text(
@@ -542,7 +494,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thêm $_quantity sản phẩm (Size: $_selectedSize${_selectedColor != null ? ', Màu: $_selectedColor' : ''}) vào giỏ hàng'),
+            content: Text('Đã thêm $_quantity sản phẩm (Size: $_selectedSize) vào giỏ hàng'),
+
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
             backgroundColor: Colors.green,

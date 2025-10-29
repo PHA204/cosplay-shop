@@ -8,7 +8,7 @@ export const getDashboardStats = async (req, res) => {
       SELECT COALESCE(SUM(total_amount), 0) as today_revenue
       FROM rental_order
       WHERE DATE(created_at) = CURRENT_DATE
-        AND status NOT IN ('cancelled')
+        AND status NOT IN ('cancelled') 
     `);
 
     // Total revenue this month

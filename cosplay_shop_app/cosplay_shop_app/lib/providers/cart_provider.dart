@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/cart_item.dart';
 import '../services/cart_service.dart';
-
 class CartProvider with ChangeNotifier {
-  final CartService _service = CartService();
-  
+  final CartService _service = CartService();  
+ 
+ 
   List<CartItem> _items = [];
   bool _loading = false;
   String? _error;
@@ -19,6 +19,7 @@ class CartProvider with ChangeNotifier {
     0.0, 
     (sum, item) => sum + (item.price * item.quantity)
   );
+
 
   // Lấy giỏ hàng từ server
   Future<void> loadCart() async {
@@ -126,6 +127,7 @@ class CartProvider with ChangeNotifier {
         productId: '',
         name: '',
         price: 0,
+        depositAmount: 0,
         quantity: 0,
         images: [],
       ),
