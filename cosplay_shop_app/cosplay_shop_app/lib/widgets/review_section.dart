@@ -55,51 +55,50 @@ class _ReviewSectionState extends State<ReviewSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Đánh giá sản phẩm',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+       // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Đánh giá sản phẩm',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  if (_totalReviews > 0) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 20),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${_averageRating.toStringAsFixed(1)} / 5.0',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    if (_totalReviews > 0) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.star, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_averageRating.toStringAsFixed(1)} / 5.0',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        Text(
-                          ' ($_totalReviews đánh giá)',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          Text(
+                            ' ($_totalReviews đánh giá)',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.tonal(
+                        onPressed: () => _showWriteReviewDialog(context),
+                        child: const Text('Viết đánh giá'),
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-              FilledButton.tonal(
-                onPressed: () => _showWriteReviewDialog(context),
-                child: const Text('Viết đánh giá'),
-              ),
-            ],
-          ),
-        ),
 
         const Divider(),
 

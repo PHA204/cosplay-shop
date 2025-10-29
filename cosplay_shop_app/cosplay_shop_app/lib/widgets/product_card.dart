@@ -35,7 +35,7 @@ class ProductCard extends StatelessWidget {
           children: [
             // Image Container
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Stack(
                 children: [
                   if (imageUrl != null)
@@ -152,33 +152,39 @@ class ProductCard extends StatelessWidget {
             ),
             
             // Product Info
-            Expanded(
-              flex: 2,
+            Flexible(
+              flex: 3,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Product Name
-                    Text(
-                      product.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        product.name,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     
                     // Character Name
                     if (product.characterName.isNotEmpty)
-                      Text(
-                        product.characterName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      Flexible(
+                        child: Text(
+                          product.characterName,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     
                     const Spacer(),
@@ -186,13 +192,15 @@ class ProductCard extends StatelessWidget {
                     // Price and Cart Button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Text(
-                            '${_formatPrice(product.dailyPrice)} ₫',
+                            '${_formatPrice(product.dailyPrice)}đ',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.primary,
                               fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -210,7 +218,7 @@ class ProductCard extends StatelessWidget {
                               size: 20,
                               color: theme.colorScheme.onPrimaryContainer,
                             ),
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(2),
                             constraints: const BoxConstraints(),
                             onPressed: onAddToCart,
                           ),

@@ -198,8 +198,9 @@ const CustomerManagement = () => {
         <Space>
           <Avatar 
             size={48} 
-            src={record.avatar_url}
-            icon={<UserOutlined />}
+            src={record.avatar_url || undefined}
+            icon={!record.avatar_url && <UserOutlined />}
+            style={!record.avatar_url ? { backgroundColor: '#1890ff' } : {}}
           />
           <div>
             <div><strong>{record.name}</strong></div>
@@ -644,11 +645,15 @@ const CustomerDetailView = ({ customer }) => {
           <div style={{ textAlign: 'center' }}>
             <Avatar 
               size={120} 
-              src={customer.avatar_url}
-              icon={<UserOutlined />}
+              src={customer.avatar_url || undefined}
+              icon={!customer.avatar_url && <UserOutlined />}
+              style={!customer.avatar_url ? { 
+                backgroundColor: '#1890ff',
+                fontSize: 48
+              } : {}}
             />
-            <h3 style={{ marginTop: 16 }}>{customer.name}</h3>
-            <Tag color="blue">{customer.email}</Tag>
+            <h3 style={{ marginTop: 16, marginBottom: 8 }}>{customer.name}</h3>
+            <Tag color="blue" icon={<MailOutlined />}>{customer.email}</Tag>
           </div>
 
           <div style={{ marginTop: 24 }}>
@@ -657,6 +662,7 @@ const CustomerDetailView = ({ customer }) => {
               value={customer.total_spent || 0}
               suffix="đ"
               valueStyle={{ color: '#52c41a', fontSize: 24 }}
+              prefix={<DollarOutlined />}
             />
           </div>
         </Col>
