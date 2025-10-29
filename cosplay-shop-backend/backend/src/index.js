@@ -14,10 +14,11 @@ import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 import adminProductRoutes from "./routes/adminProductRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js"; // ⭐ New
 
 const app = express();
 
-// ✅ CORS Configuration - Cho phép frontend Vite (port 5173)
+// CORS Configuration
 app.use(cors({
   origin: '*',
   credentials: true,
@@ -50,6 +51,9 @@ app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 
+// ⭐ Upload routes
+app.use("/api/upload", uploadRoutes);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
@@ -63,6 +67,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📚 API: http://localhost:${PORT}/api`);
   console.log(`🌐 CORS enabled for: http://localhost:5173`);
+  console.log(`📸 Upload endpoint: http://localhost:${PORT}/api/upload`);
 });
 
 export default app;

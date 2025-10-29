@@ -12,6 +12,7 @@ import {
   CopyOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
+import ImageUpload from '../../components/ImageUpload';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -556,32 +557,32 @@ const ProductManagement = () => {
       </Card>
 
       {/* Create/Edit Modal */}
-      <Modal
-        title={
-          editModal.mode === 'create' ? '➕ Thêm sản phẩm mới' :
-          editModal.mode === 'edit' ? '✏️ Chỉnh sửa sản phẩm' :
-          '👁️ Chi tiết sản phẩm'
-        }
-        open={editModal.visible}
-        onCancel={() => {
-          setEditModal({ visible: false, mode: 'create', product: null });
-          form.resetFields();
-        }}
-        width={800}
-        footer={editModal.mode === 'view' ? [
-          <Button key="close" onClick={() => setEditModal({ visible: false, mode: 'create', product: null })}>
-            Đóng
-          </Button>
-        ] : null}
-      >
-        {editModal.mode === 'view' && editModal.product ? (
-          <ProductDetailView product={editModal.product} />
-        ) : (
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-          >
+     <Modal
+          title={
+            editModal.mode === 'create' ? '➕ Thêm sản phẩm mới' :
+            editModal.mode === 'edit' ? '✏️ Chỉnh sửa sản phẩm' :
+            '👁️ Chi tiết sản phẩm'
+          }
+          open={editModal.visible}
+          onCancel={() => {
+            setEditModal({ visible: false, mode: 'create', product: null });
+            form.resetFields();
+          }}
+          width={800}
+          footer={editModal.mode === 'view' ? [
+            <Button key="close" onClick={() => setEditModal({ visible: false, mode: 'create', product: null })}>
+              Đóng
+            </Button>
+          ] : null}
+        >
+          {editModal.mode === 'view' && editModal.product ? (
+            <ProductDetailView product={editModal.product} />
+          ) : (
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+            >
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -742,40 +743,34 @@ const ProductManagement = () => {
               />
             </Form.Item>
 
-            <Form.Item
-              label="Hình ảnh (URLs)"
-              name="images"
-              extra="Nhập URL hình ảnh, mỗi URL trên một dòng"
-            >
-              <TextArea
-                rows={4}
-                placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-                onChange={(e) => {
-                  const urls = e.target.value.split('\n').filter(url => url.trim());
-                  form.setFieldsValue({ images: urls });
-                }}
-              />
-            </Form.Item>
+              <Form.Item
+                label="Hình ảnh sản phẩm"
+                name="images"
+                extra="Tối đa 5 ảnh, mỗi ảnh tối đa 5MB"
+                initialValue={[]}
+              >
+                <ImageUpload maxCount={5} />
+              </Form.Item>
 
-            <Form.Item>
-              <Space>
-                <Button type="primary" htmlType="submit" size="large">
-                  {editModal.mode === 'create' ? 'Tạo sản phẩm' : 'Cập nhật'}
-                </Button>
-                <Button
-                  size="large"
-                  onClick={() => {
-                    setEditModal({ visible: false, mode: 'create', product: null });
-                    form.resetFields();
-                  }}
-                >
-                  Hủy
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        )}
-      </Modal>
+              <Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit" size="large">
+                    {editModal.mode === 'create' ? 'Tạo sản phẩm' : 'Cập nhật'}
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => {
+                      setEditModal({ visible: false, mode: 'create', product: null });
+                      form.resetFields();
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          )}
+        </Modal>
 
       {/* Bulk Update Modal */}
       <Modal

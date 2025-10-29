@@ -1,11 +1,19 @@
-// middlewares/upload.js
-const multer = require('multer');
-const path = require('path');
+// Path: backend/src/middleware/upload.js
 
-// Cấu hình multer để lưu file tạm
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Tạo thư mục uploads nếu chưa tồn tại
+const uploadDir = 'uploads/temp';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/temp/'); // Tạo folder này trước
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -13,17 +21,18 @@ const storage = multer.diskStorage({
   }
 });
 
-// Filter chỉ cho phép ảnh
+// File filter - chỉ chấp nhận ảnh
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)'), false);
+    cb(new Error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP, GIF)'), false);
   }
 };
 
+// Configure multer
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
@@ -32,4 +41,4 @@ const upload = multer({
   }
 });
 
-module.exports = upload;
+export default upload;
