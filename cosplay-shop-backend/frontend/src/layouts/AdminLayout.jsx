@@ -112,7 +112,7 @@ const AdminLayout = () => {
           fontWeight: 'bold',
           borderBottom: '1px solid rgba(255,255,255,0.1)'
         }}>
-          {collapsed ? '🎭' : '🎭 Cosplay Admin'}
+          {collapsed ? '🧙‍♂️' : '🧙‍♂️ Cosplay Admin'}
         </div>
         <Menu
           theme="dark"

@@ -47,12 +47,12 @@ const ProductManagement = () => {
   const [bulkForm] = Form.useForm();
 
   // Fetch products
-  const fetchProducts = async (page = pagination.current) => {
+  const fetchProducts = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
       const params = {
         page,
-        limit: pagination.pageSize,
+        limit: pageSize,
         ...filters,
       };
 
@@ -60,8 +60,8 @@ const ProductManagement = () => {
 
       setProducts(response.data.data);
       setPagination({
-        ...pagination,
         current: page,
+        pageSize: pageSize,
         total: response.data.total,
       });
     } catch (error) {
@@ -137,7 +137,7 @@ const ProductManagement = () => {
 
       setEditModal({ visible: false, mode: 'create', product: null });
       form.resetFields();
-      fetchProducts();
+      fetchProducts(pagination.current, pagination.pageSize);
     } catch (error) {
       message.error(error.response?.data?.error || 'Có lỗi xảy ra');
     }
@@ -148,7 +148,7 @@ const ProductManagement = () => {
     try {
       await api.delete(`/admin/products/${id}`);
       message.success('Xóa sản phẩm thành công!');
-      fetchProducts();
+      fetchProducts(pagination.current, pagination.pageSize);
     } catch (error) {
       message.error(error.response?.data?.error || 'Không thể xóa sản phẩm');
     }
@@ -192,7 +192,7 @@ const ProductManagement = () => {
       setBulkModal(false);
       bulkForm.resetFields();
       setSelectedRowKeys([]);
-      fetchProducts();
+      fetchProducts(pagination.current, pagination.pageSize);
     } catch (error) {
       message.error(error.response?.data?.error || 'Có lỗi xảy ra');
     }
@@ -430,7 +430,7 @@ const ProductManagement = () => {
               prefix={<SearchOutlined />}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              onPressEnter={() => fetchProducts(1)}
+              onPressEnter={() => fetchProducts(1, pagination.pageSize)}
               allowClear
             />
           </Col>
@@ -490,7 +490,7 @@ const ProductManagement = () => {
               <Button
                 type="primary"
                 icon={<SearchOutlined />}
-                onClick={() => fetchProducts(1)}
+                onClick={() => fetchProducts(1, pagination.pageSize)}
               >
                 Tìm
               </Button>
@@ -504,7 +504,7 @@ const ProductManagement = () => {
                     sort_by: 'created_at',
                     order: 'desc',
                   });
-                  setTimeout(() => fetchProducts(1), 100);
+                  setTimeout(() => fetchProducts(1, pagination.pageSize), 100);
                 }}
               />
             </Space>
@@ -540,18 +540,15 @@ const ProductManagement = () => {
           loading={loading}
           rowSelection={rowSelection}
           pagination={{
-            ...pagination,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} sản phẩm`,
             pageSizeOptions: ['10', '20', '50', '100'],
           }}
           onChange={(newPagination) => {
-            setPagination({
-              ...pagination,
-              current: newPagination.current,
-              pageSize: newPagination.pageSize,
-            });
-            fetchProducts(newPagination.current);
+            fetchProducts(newPagination.current, newPagination.pageSize);
           }}
           scroll={{ x: 1400 }}
           size="middle"

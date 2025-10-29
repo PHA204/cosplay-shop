@@ -9,6 +9,8 @@ import OrderManagement from './pages/admin/OrderManagement';
 import ProductManagement from './pages/admin/ProductManagement'; // Import mới
 import Login from './pages/admin/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import CustomerManagement from './pages/admin/CustomerManagement';
+import Dashboard from  './pages/admin/Dashboard';
 
 function App() {
   return (
@@ -27,11 +29,12 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/admin/orders" replace />} />
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="orders" element={<OrderManagement />} />
             <Route path="products" element={<ProductManagement />} /> 
-            <Route path="dashboard" element={<div>Dashboard (Coming soon)</div>} />
-            <Route path="customers" element={<div>Customers (Coming soon)</div>} />
+            
+            <Route path="/admin/customers" element={<CustomerManagement />} />
             <Route path="settings" element={<div>Settings (Coming soon)</div>} />
           </Route>
 
