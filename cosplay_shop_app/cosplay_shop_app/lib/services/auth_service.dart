@@ -106,4 +106,22 @@ class AuthService {
   Future<void> logout() async {
     await TokenStorage.clear();
   }
+  // Đổi mật khẩu
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await _api.put('/auth/change-password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+
+    if (response.statusCode == 200) {
+      return; // Success
+    } else {
+      final body = json.decode(response.body);
+      throw Exception(body['error'] ?? 'Không thể đổi mật khẩu');
+    }
+  }
+
 }

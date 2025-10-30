@@ -13,8 +13,14 @@ import {
 const router = express.Router();
 
 // Admin authentication required for all routes
-router.use(authenticateAdmin);
+import { authenticateToken } from '../middleware/auth.js';
+router.post('/user/avatar', 
+  authenticateToken,  // ← User auth
+  upload.single('image'), 
+  uploadSingleImage
+);
 
+router.use(authenticateAdmin);
 // POST /api/upload/single - Upload single image
 router.post('/single', upload.single('image'), uploadSingleImage);
 

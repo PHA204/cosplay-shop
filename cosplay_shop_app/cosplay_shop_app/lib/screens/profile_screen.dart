@@ -1,9 +1,12 @@
+import 'package:cosplay_shop_app/screens/settings_screen.dart';
 import 'package:cosplay_shop_app/screens/wishlist_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'rental_orders_screen.dart';
+import '../services/upload_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -115,6 +118,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     title: 'Địa chỉ giao hàng',
                     subtitle: user?.address ?? 'Chưa có địa chỉ',
+                    showArrow: false,
                     onTap: () {
                       // Navigate to address
                     },
@@ -124,6 +128,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.phone_outlined,
                     title: 'Số điện thoại',
                     subtitle: user?.phone ?? 'Chưa có số điện thoại',
+                    showArrow: false,
                     onTap: () {
                       // Edit phone
                     },
@@ -136,7 +141,10 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.settings_outlined,
                     title: 'Cài đặt',
                     onTap: () {
-                      // Navigate to settings
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                     );
                     },
                   ),
                   _buildMenuItem(
@@ -187,6 +195,7 @@ class ProfileScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     String? subtitle,
+    bool showArrow = true,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
@@ -194,7 +203,7 @@ class ProfileScreen extends StatelessWidget {
       leading: Icon(icon, color: theme.colorScheme.primary),
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: const Icon(Icons.chevron_right),
+      trailing: showArrow ? const Icon(Icons.chevron_right) : null,   
       onTap: onTap,
     );
   }
@@ -290,6 +299,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   bool _isLoading = false;
+  String? _newAvatarUrl;  // Lưu URL ảnh mới
+  bool _uploadingImage = false;  // Trạng thái đang upload
 
   @override
   void initState() {
@@ -298,6 +309,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: user?.name ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _addressController = TextEditingController(text: user?.address ?? '');
+  }
+  // ← THÊM METHOD NÀY
+  Future<void> _handlePickImage() async {
+    // Show dialog chọn nguồn
+    final source = await UploadService.showImageSourceDialog(context);
+    
+    if (source == null) return; // User cancelled
+    
+    setState(() => _uploadingImage = true);
+    
+    try {
+      final uploadService = UploadService();
+      String? url;
+      
+      if (source == ImageSource.gallery) {
+        url = await uploadService.pickAndUploadImage();
+      } else {
+        url = await uploadService.pickFromCamera();
+      }
+      
+      if (url != null && mounted) {
+        setState(() {
+          _newAvatarUrl = url;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Đã chọn ảnh thành công!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Lỗi: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+      }
+    }
   }
 
   @override
@@ -322,6 +382,74 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
+                  Center(
+                child: Stack(
+                  children: [
+                    // Avatar hiển thị
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      backgroundImage: _newAvatarUrl != null
+                          ? NetworkImage(_newAvatarUrl!)
+                          : (context.read<AuthProvider>().user?.avatarUrl != null
+                              ? NetworkImage(context.read<AuthProvider>().user!.avatarUrl!)
+                              : null),
+                      child: (_newAvatarUrl == null && 
+                              context.read<AuthProvider>().user?.avatarUrl == null)
+                          ? Icon(
+                              Icons.person,
+                              size: 60,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            )
+                          : null,
+                    ),
+                    
+                    // Nút chụp/chọn ảnh
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Material(
+                        color: theme.colorScheme.primary,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          onTap: _uploadingImage ? null : _handlePickImage,
+                          customBorder: const CircleBorder(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: _uploadingImage
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: theme.colorScheme.onPrimary,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.camera_alt,
+                                    size: 20,
+                                    color: theme.colorScheme.onPrimary,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Text hướng dẫn
+              Text(
+                'Nhấn vào biểu tượng camera để thay đổi ảnh',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -388,6 +516,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             name: _nameController.text,
             phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
             address: _addressController.text.isNotEmpty ? _addressController.text : null,
+            avatarUrl: _newAvatarUrl,
           );
 
       setState(() => _isLoading = false);

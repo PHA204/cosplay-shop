@@ -102,3 +102,69 @@ export const updateUserProfile = async (req, res) => {
 
   res.json(result.rows[0]);
 };
+
+// 🔒 Đổi mật khẩu
+export const changePassword = async (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  // Validation
+  if (!current_password || !new_password) {
+    return res.status(400).json({ 
+      error: "Vui lòng nhập mật khẩu hiện tại và mật khẩu mới" 
+    });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ 
+      error: "Mật khẩu mới phải có ít nhất 6 ký tự" 
+    });
+  }
+
+  if (current_password === new_password) {
+    return res.status(400).json({ 
+      error: "Mật khẩu mới phải khác mật khẩu hiện tại" 
+    });
+  }
+
+  try {
+    // Lấy user hiện tại với password
+    const userResult = await pool.query(
+      "SELECT id, password_hash FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    const user = userResult.rows[0];
+
+    // Kiểm tra mật khẩu hiện tại
+    const isPasswordValid = await bcrypt.compare(
+      current_password,
+      user.password_hash
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Mật khẩu hiện tại không đúng" });
+    }
+
+    // Hash mật khẩu mới
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    // Cập nhật password
+    await pool.query(
+      "UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+      [hashedPassword, req.user.id]
+    );
+
+    res.json({ 
+      message: "Đổi mật khẩu thành công",
+      success: true 
+    });
+
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+};
