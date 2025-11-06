@@ -1,7 +1,3 @@
-
-
-
-
 // lib/screens/splash_screen.dart
 import 'package:cosplay_shop_app/providers/auth_provider.dart';
 import 'package:cosplay_shop_app/screens/main_navigation.dart';
@@ -43,10 +39,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.shopping_bag,
-              size: 100,
-              color: Theme.of(context).colorScheme.primary,
+            Image.asset(
+              'assets/images/logo.png',
+              width: 28,
+              height: 28,
+              color: Colors.white, // Nếu muốn tô màu
             ),
             const SizedBox(height: 24),
             Text(

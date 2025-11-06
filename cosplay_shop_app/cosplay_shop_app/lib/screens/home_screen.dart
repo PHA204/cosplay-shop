@@ -79,10 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // App title và user icon
                   Row(
                     children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Colors.white,
-                        size: 28,
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 50,
+                        height: 50,                                                                                               
                       ),
                       const SizedBox(width: 12),
                       Text(

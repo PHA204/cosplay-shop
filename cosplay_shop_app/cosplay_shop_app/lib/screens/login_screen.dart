@@ -51,13 +51,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.shopping_bag_outlined,
-                    size: 60,
-                    color: theme.colorScheme.onPrimary,
+                  child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 60,
+                        height: 60,                        
+                        fit: BoxFit.contain,                        
+                      ),
                   ),
-                ),
-                
+                                
                 const SizedBox(height: 32),
                 
                 // Title
