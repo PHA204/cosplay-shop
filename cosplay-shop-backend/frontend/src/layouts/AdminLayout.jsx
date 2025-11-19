@@ -7,7 +7,8 @@ import {
   ShoppingOutlined,
   UserOutlined,
   AppstoreOutlined,
-  SettingOutlined,
+  BarChartOutlined,
+  FileTextOutlined,
   LogoutOutlined,
   DownOutlined,
 } from '@ant-design/icons';
@@ -45,9 +46,10 @@ const AdminLayout = () => {
       icon: <UserOutlined />,
     },
     {
-      key: 'settings',
-      label: 'Cài đặt',
-      icon: <SettingOutlined />,
+      key: 'reports',
+      label: 'Báo cáo',
+      icon: <FileTextOutlined />,
+      onClick: () => navigate('/admin/reports'),
     },
     {
       type: 'divider',
@@ -87,11 +89,11 @@ const AdminLayout = () => {
       onClick: () => navigate('/admin/customers'),
     },
     {
-      key: '/admin/settings',
-      icon: <SettingOutlined />,
-      label: 'Cài đặt',
-      onClick: () => navigate('/admin/settings'),
-    },
+      key: '/admin/reports',
+      icon: <BarChartOutlined />,
+      label: 'Báo cáo',
+      onClick: () => navigate('/admin/reports'),
+    }
   ];
 
   return (

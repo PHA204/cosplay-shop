@@ -15,9 +15,9 @@ import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 import adminProductRoutes from "./routes/adminProductRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js"; // ⭐ New
+import reportsRoutes from "./routes/reports.js";
 
 const app = express();
-
 // CORS Configuration
 app.use(cors({
   origin: '*',
@@ -50,6 +50,7 @@ app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/users", adminUserRoutes);
+app.use('/api/admin/reports', reportsRoutes);
 
 // ⭐ Upload routes
 app.use("/api/upload", uploadRoutes);

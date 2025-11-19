@@ -3,16 +3,16 @@ class Product {
   final String id;
   final String name;
   final String characterName;
-  final double dailyPrice;        // Giá thuê theo ngày
-  final double? weeklyPrice;      // Giá thuê theo tuần (optional)
-  final double depositAmount;     // Tiền đặt cọc
+  final double dailyPrice;        
+  final double? weeklyPrice;      
+  final double depositAmount;     
   final List<dynamic> images;
   final String? size;
-  final int totalQuantity;        // Tổng số lượng
-  final int availableQuantity;    // Số lượng có sẵn
+  final int totalQuantity;        
+  final int availableQuantity;    
   final String? description;
-  final String? condition;        // Tình trạng
-  final String? categoryId;       // Category ID
+  final String? condition;        
+  final String? categoryId;       
 
   Product({
     required this.id,

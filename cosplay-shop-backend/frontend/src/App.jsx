@@ -11,6 +11,7 @@ import Login from './pages/admin/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import CustomerManagement from './pages/admin/CustomerManagement';
 import Dashboard from  './pages/admin/Dashboard';
+import Reports from './pages/admin/Reports';
 
 function App() {
   return (
@@ -35,7 +36,8 @@ function App() {
             <Route path="products" element={<ProductManagement />} /> 
             
             <Route path="/admin/customers" element={<CustomerManagement />} />
-            <Route path="settings" element={<div>Settings (Coming soon)</div>} />
+            <Route path="/admin/reports" element={<Reports />} />
+
           </Route>
 
           {/* Redirect root to admin */}

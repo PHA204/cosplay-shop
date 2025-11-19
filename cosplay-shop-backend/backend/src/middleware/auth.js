@@ -1,3 +1,5 @@
+// Path: backend/src/middleware/auth.js
+
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "../config/jwt.js"
 
@@ -29,5 +31,23 @@ export const optionalAuth = (req, res, next) => {
       }
     })
   }
+  next()
+}
+
+// Middleware to check if user is admin
+export const isAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" })
+  }
+
+  // Check if user has admin role (support both role and isAdmin flag)
+  const hasAdminRole = req.user.role === 'admin' || req.user.isAdmin === true;
+  
+  if (!hasAdminRole) {
+    console.log('❌ Admin access denied. User:', req.user);
+    return res.status(403).json({ error: "Admin access required" })
+  }
+
+  console.log('✅ Admin access granted');
   next()
 }
